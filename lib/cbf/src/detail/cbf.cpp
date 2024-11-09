@@ -13,6 +13,11 @@ GiNaC::ex myAlpha(GiNaC::ex myh, double mygamma)
     return mygamma * GiNaC::pow(myh, 5);
 }
 
+GiNaC::ex fifthAlpha(GiNaC::ex myh, double mygamma)
+{
+    return mygamma * GiNaC::pow(myh, 5);
+}
+
 namespace cbf
 {   
     // template <typename T>
@@ -49,7 +54,7 @@ namespace cbf
         g = B;
 
         // Set default alpha
-        alpha = myAlpha;
+        alpha = fifthAlpha;
 
         // ------- Safety constraint ------- //
         auto res = initSafetyCBF();

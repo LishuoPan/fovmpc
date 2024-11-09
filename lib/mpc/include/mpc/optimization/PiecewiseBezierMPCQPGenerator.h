@@ -55,6 +55,9 @@ namespace mpc {
                                      const VectorDIM& LB,
                                      const VectorDIM& UB);
 
+
+        // piece cost
+
         // constraints
         // add df^{derivative_degree}/dt^{derivative_degree}(paramter) = target
         // constraint to the generated qp

@@ -95,6 +95,8 @@ int main() {
     int impc_iter = 2;
     BezierMPCCBFParams bezier_impc_cbf_params = {piecewise_bezier_params, mpc_params, fov_cbf_params};
     BezierIMPCCBF bezier_impc_cbf(bezier_impc_cbf_params, pred_model_ptr, fov_cbf, bezier_continuity_upto_degree, aligned_box_collision_shape_ptr, impc_iter);
+
+
     // main loop
     // load the tasks
     std::vector<State> init_states;
@@ -130,7 +132,7 @@ int main() {
                 }
                 other_robot_positions.push_back(init_states.at(j).pos_);
             }
-            // BezierIMPCCBF bezier_impc_cbf(bezier_impc_cbf_params, pred_model_ptr, fov_cbf, bezier_continuity_upto_degree, aligned_box_collision_shape_ptr, impc_iter);
+//            BezierIMPCCBF bezier_impc_cbf(bezier_impc_cbf_params, pred_model_ptr, fov_cbf, bezier_continuity_upto_degree, aligned_box_collision_shape_ptr, impc_iter);
             bezier_impc_cbf.resetProblem();
             Vector ref_positions(DIM*k_hor);
             // static target reference

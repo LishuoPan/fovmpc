@@ -56,7 +56,6 @@ namespace splines {
                 const VectorDIM& LB,
                 const VectorDIM& UB) const override;
 
-
         virtual DecisionVariableBounds boundingBoxConstraint(
                 const AlignedBox& bounding_box) const override;
 
