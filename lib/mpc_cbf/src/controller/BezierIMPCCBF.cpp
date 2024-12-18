@@ -44,6 +44,40 @@ namespace mpc_cbf {
         bool success = true;
         assert(impc_iter_ >= 1);
 
+        VectorDIM current_pos = current_state.pos_;
+        VectorDIM current_vel = current_state.vel_;
+
+        // sort neighbors based on distance
+        std::vector<std::pair<VectorDIM, Matrix>> other_pos_covs(other_robot_positions.size());                 // each elem is a tuple (pos, cov)
+        for (int i = 0; i < other_pos_covs.size(); ++i)
+        {
+            other_pos_covs[i] = std::make_pair(other_robot_positions.at(i), other_robot_covs.at(i));
+        }
+        std::vector<std::pair<VectorDIM, Matrix>> sorted_pos_covs = other_pos_covs;
+        std::sort(sorted_pos_covs.begin(), sorted_pos_covs.end(), [this, current_pos](std::pair<VectorDIM, Matrix> a, std::pair<VectorDIM, Matrix> b){
+            return compareDist(current_pos, a, b);
+            });
+
+        // Define new sorted vectors of positions and covariances
+        std::vector<VectorDIM> sorted_robots(other_robot_positions.size());
+        std::vector<Matrix> sorted_covs(other_robot_positions.size());
+        std::cout << "Sorted robots: \n"; 
+        for (int i = 0; i < sorted_robots.size(); ++i)
+        {
+            sorted_robots[i] = sorted_pos_covs.at(i).first;
+            sorted_covs[i] = sorted_pos_covs.at(i).second;
+            std::cout << sorted_robots.at(i).transpose() << std::endl;
+        }
+
+        // define slack variables weights (exp decay)
+        T w_init = 100.0;
+        T decay_factor = 0.25;
+        Vector weights(sorted_robots.size());
+        for (int i = 0; i < weights.size(); ++i)
+        {
+            weights(i) = w_init * pow(decay_factor, i);
+        }
+
         for (size_t iter = 0; iter < impc_iter_; ++iter) {
             // reset the problem
             qp_generator_.problem().resetProblem();
@@ -59,8 +93,6 @@ namespace mpc_cbf {
             }
 
             // add the current state constraints
-            VectorDIM current_pos = current_state.pos_;
-            VectorDIM current_vel = current_state.vel_;
             qp_generator_.piecewise_mpc_qp_generator_ptr()->addEvalConstraint(0, 0, current_pos);
             qp_generator_.piecewise_mpc_qp_generator_ptr()->addEvalConstraint(0, 1, current_vel);
 
@@ -161,6 +193,13 @@ namespace mpc_cbf {
         }
 
         return success;
+    }
+
+    template <typename T, unsigned int DIM>
+    bool BezierIMPCCBF<T, DIM>::compareDist(const VectorDIM& p_current,
+                                         const std::pair<VectorDIM, Matrix>& a,
+                                         const std::pair<VectorDIM, Matrix>& b) {
+        return distanceToEllipse(p_current, a.first, a.second) < distanceToEllipse(p_current, b.first, b.second);
     }
 
     template <typename T, unsigned int DIM>

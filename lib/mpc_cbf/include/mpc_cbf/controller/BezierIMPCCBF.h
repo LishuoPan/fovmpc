@@ -51,6 +51,8 @@ namespace mpc_cbf {
 
         T distanceToEllipse(const VectorDIM& robot_position, const Vector& target_mean, const Matrix& target_cov);
 
+        bool compareDist(const VectorDIM& p_current, const std::pair<VectorDIM, Matrix>& a, const std::pair<VectorDIM, Matrix>& b);
+
         void resetProblem();
 
         Vector generatorDerivativeControlInputs(uint64_t derivative_degree);
