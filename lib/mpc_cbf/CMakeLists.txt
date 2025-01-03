@@ -15,6 +15,11 @@ if(NOT is_cbf_ADDED)
     add_subdirectory(../cbf ${CMAKE_CURRENT_BINARY_DIR}/cbf)
 endif()
 
+get_property(is_pf_ADDED GLOBAL PROPERTY pf_ADDED)
+if(NOT is_pf_ADDED)
+    add_subdirectory(../particle_filter ${CMAKE_CURRENT_BINARY_DIR}/particle_filter)
+endif()
+
 # add libraries
 add_library(mpc_cbf_optimization_PiecewiseBezierMPCCBFQPOperations SHARED src/optimization/PiecewiseBezierMPCCBFQPOperations.cpp)
 target_include_directories(mpc_cbf_optimization_PiecewiseBezierMPCCBFQPOperations PUBLIC include)
@@ -55,3 +60,11 @@ target_link_libraries(mpc_cbf_examples_BezierIMPCCBFXYYaw_example PUBLIC
         mpc_cbf_controller_BezierIMPCCBF
         model_DoubleIntegratorXYYaw
         math_collision_shapes_AlignedBoxCollisionShape)
+
+add_executable(mpc_cbf_pf_example examples/pf_ex.cpp)
+target_include_directories(mpc_cbf_pf_example PUBLIC include ../../third_party/json/single_include)
+target_link_libraries(mpc_cbf_pf_example PUBLIC
+        mpc_cbf_controller_BezierIMPCCBF
+        model_DoubleIntegratorXYYaw
+        math_collision_shapes_AlignedBoxCollisionShape
+        ParticleFilter)
