@@ -27,6 +27,9 @@ namespace cbf {
         LinearConstraint leftBorderConstraint(const Vector& state, const Vector& target_state);
         LinearConstraint rightBorderConstraint(const Vector& state, const Vector& target_state);
         LinearConstraint rangeConstraint(const Vector& state, const Vector& target_state);
+        LinearConstraint leftBorderConstraintWithSlackVar(const Vector& state, const Vector& target_state, const T &slack);
+        LinearConstraint rightBorderConstraintWithSlackVar(const Vector& state, const Vector& target_state, const T &slack);
+        LinearConstraint rangeConstraintWithSlackVar(const Vector& state, const Vector& target_state, const T &slack);
         DecisionVariableBounds controlBoundConstraint(const VectorDIM& u_min, const VectorDIM& u_max);
 
     private:

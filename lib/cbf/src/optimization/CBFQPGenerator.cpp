@@ -59,6 +59,30 @@ namespace cbf {
     }
 
     template <typename T, unsigned int DIM>
+    void CBFQPGenerator<T, DIM>::addLeftBorderConstraintWithSlackVar(const Vector &state,
+                                                         const Vector &target_state,
+                                                         const T &slack) {
+        LinearConstraint linear_constraint = cbf_operations_ptr_->leftBorderConstraintWithSlackVar(state, target_state, slack);
+        addLinearConstraintForControlInput(linear_constraint);
+    }
+
+    template <typename T, unsigned int DIM>
+    void CBFQPGenerator<T, DIM>::addRightBorderConstraintWithSlackVar(const Vector &state,
+                                                          const Vector &target_state,
+                                                          const T &slack) {
+        LinearConstraint linear_constraint = cbf_operations_ptr_->rightBorderConstraintWithSlackVar(state, target_state, slack);
+        addLinearConstraintForControlInput(linear_constraint);
+    }
+
+    template <typename T, unsigned int DIM>
+    void CBFQPGenerator<T, DIM>::addRangeConstraintWithSlackVar(const Vector &state,
+                                                    const Vector &target_state,
+                                                    const T &slack) {
+        LinearConstraint linear_constraint = cbf_operations_ptr_->rangeConstraintWithSlackVar(state, target_state, slack);
+        addLinearConstraintForControlInput(linear_constraint);
+    }
+
+    template <typename T, unsigned int DIM>
     void CBFQPGenerator<T, DIM>::addControlBoundConstraint(const VectorDIM &u_min, const VectorDIM &u_max) {
         DecisionVariableBounds decision_variable_bounds = cbf_operations_ptr_->controlBoundConstraint(u_min, u_max);
         addDecisionVariableBoundsForControlInput(decision_variable_bounds);

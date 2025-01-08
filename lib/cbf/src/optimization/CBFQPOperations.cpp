@@ -63,6 +63,36 @@ namespace cbf {
     }
 
     template <typename T, unsigned int DIM>
+    typename CBFQPOperations<T, DIM>::LinearConstraint
+    CBFQPOperations<T, DIM>::leftBorderConstraintWithSlackVar(const Vector &state,
+                                                  const Vector &target_state,
+                                                  const T &slack) {
+        Vector coefficients = -1.0 * cbf_->getLBConstraints(state, target_state);
+        T bound = cbf_->getLBBound(state, target_state);
+        return LinearConstraint(coefficients, std::numeric_limits<T>::lowest(), bound+slack);
+    }
+
+    template <typename T, unsigned int DIM>
+    typename CBFQPOperations<T, DIM>::LinearConstraint
+    CBFQPOperations<T, DIM>::rightBorderConstraintWithSlackVar(const Vector &state,
+                                                   const Vector &target_state,
+                                                   const T &slack) {
+        Vector coefficients = -1.0 * cbf_->getRBConstraints(state, target_state);
+        T bound = cbf_->getRBBound(state, target_state);
+        return LinearConstraint(coefficients, std::numeric_limits<T>::lowest(), bound+slack);
+    }
+
+    template <typename T, unsigned int DIM>
+    typename CBFQPOperations<T, DIM>::LinearConstraint
+    CBFQPOperations<T, DIM>::rangeConstraintWithSlackVar(const Vector &state,
+                                             const Vector &target_state,
+                                             const T &slack) {
+        Vector coefficients = -1.0 * cbf_->getRangeConstraints(state, target_state);
+        T bound = cbf_->getRangeBound(state, target_state);
+        return LinearConstraint(coefficients, std::numeric_limits<T>::lowest(), bound);
+    }
+
+    template <typename T, unsigned int DIM>
     typename CBFQPOperations<T, DIM>::DecisionVariableBounds
     CBFQPOperations<T, DIM>::controlBoundConstraint(const VectorDIM &u_min,
                                                     const VectorDIM &u_max) {

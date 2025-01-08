@@ -30,6 +30,9 @@ namespace cbf {
         void addLeftBorderConstraint(const Vector& state, const Vector& target_state);
         void addRightBorderConstraint(const Vector& state, const Vector& target_state);
         void addRangeConstraint(const Vector& state, const Vector& target_state);
+        void addLeftBorderConstraintWithSlackVar(const Vector& state, const Vector& target_state, const T &slack);
+        void addRightBorderConstraintWithSlackVar(const Vector& state, const Vector& target_state, const T &slack);
+        void addRangeConstraintWithSlackVar(const Vector& state, const Vector& target_state, const T &slack);
         void addControlBoundConstraint(const VectorDIM &u_min, const VectorDIM &u_max);
 
         VectorDIM generatorCBFControlInput() const;

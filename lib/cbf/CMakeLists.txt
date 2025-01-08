@@ -15,6 +15,11 @@ if(NOT is_qpcpp_ADDED)
     add_subdirectory(../qpcpp ${CMAKE_CURRENT_BINARY_DIR}/qpcpp)
 endif()
 
+get_property(is_pf_ADDED GLOBAL PROPERTY pf_ADDED)
+if(NOT is_pf_ADDED)
+    add_subdirectory(../particle_filter ${CMAKE_CURRENT_BINARY_DIR}/particle_filter)
+endif()
+
 # add libraries
 add_library(cbf_detail_FovCBF SHARED src/detail/cbf.cpp)
 target_include_directories(cbf_detail_FovCBF PUBLIC include)
@@ -59,5 +64,12 @@ target_include_directories(cbf_examples_CBFControlStaticTarget_example PUBLIC in
 target_link_libraries(cbf_examples_CBFControlStaticTarget_example PUBLIC
         model_DoubleIntegratorXYYaw
         cbf_controller_CBFControl)
+
+add_executable(cbf_examples_CBFControlSlack_example examples/CBFControlSlack_example.cpp)
+target_include_directories(cbf_examples_CBFControlSlack_example PUBLIC include ../../third_party/json/single_include)
+target_link_libraries(cbf_examples_CBFControlSlack_example PUBLIC
+        model_DoubleIntegratorXYYaw
+        cbf_controller_CBFControl
+        ParticleFilter)
 
 

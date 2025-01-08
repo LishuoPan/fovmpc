@@ -27,6 +27,9 @@ namespace cbf {
         bool optimize(VectorDIM &cbf_u, const VectorDIM &desired_u,
                       const Vector &state, const Vector &target_state,
                       const VectorDIM& u_min, const VectorDIM& u_max);
+        bool optimizeWithSlackVariables(VectorDIM &cbf_u, const VectorDIM &desired_u,
+                      const Vector &state, const std::vector<VectorDIM> &other_robots_states, const std::vector<T> &slacks,
+                      const VectorDIM& u_min, const VectorDIM& u_max);
 
     private:
         CBFQPGenerator qp_generator_;
