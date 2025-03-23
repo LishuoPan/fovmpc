@@ -1,3 +1,5 @@
+import numpy as np
+
 from Metrics import *
 from ComputeCI import *
 import colorsys
@@ -20,41 +22,41 @@ instance_type = "circle"
 # instance_type = "formation"
 config_path = "../instances/"+instance_type+"_instances/"
 result_path = "/media/lishuo/ssd/RSS2025_results/log"
-date = "03202025"
-num_exp = 2
+date = "03222025"
+num_exp = 15
 min_r = 2
-max_r = 3
+max_r = 8
 min_fov=120
-max_fov=360
+max_fov=240
 fov_step=120
 min_slack_decay=0.2
 max_slack_decay=0.3
 slack_decay_step=0.1
 default_slack_decay=0.2
-decay_exp_fovs = [120, 240]
+decay_exp_fovs = [120]
 num_robot = range(min_r, max_r+1)
 fovs = range(min_fov, max_fov+fov_step, fov_step)
 # fovs = []
-slack_decays = [0.1]
+slack_decays = [1.0]
 print("slack decays: ", slack_decays)
 
 experiment_key=[]
 experiment_slack_decay_key=[]
 experiment_fov_key=[]
 
-# for fov in fovs:
-#     experiment_key.append("Baseline "+r"\beta_{H}="+str(fov)+r", \gamma_{s}="+str(default_slack_decay))
-#     experiment_slack_decay_key.append(default_slack_decay)
-#     experiment_fov_key.append(fov)
 for fov in fovs:
-    experiment_key.append("Ours "+r"\beta_{H}="+str(fov)+r", \gamma_{s}="+str(default_slack_decay))
+    experiment_key.append("SlackOff, "+r"\beta_{H}="+str(fov))
     experiment_slack_decay_key.append(default_slack_decay)
     experiment_fov_key.append(fov)
-for fov in decay_exp_fovs:
-    for decay in slack_decays:
-        experiment_key.append(r"Ours \beta_{H}="+str(fov)+r", \gamma_{s}="+str(decay))
-        experiment_slack_decay_key.append(decay)
-        experiment_fov_key.append(fov)
+for fov in fovs:
+    experiment_key.append("SlackOn, "+r"\beta_{H}="+str(fov)+r", \gamma_{s}="+str(default_slack_decay))
+    experiment_slack_decay_key.append(default_slack_decay)
+    experiment_fov_key.append(fov)
+# for fov in decay_exp_fovs:
+#     for decay in slack_decays:
+#         experiment_key.append(r"SlackOn \beta_{H}="+str(fov)+r", \gamma_{s}="+str(decay))
+#         experiment_slack_decay_key.append(decay)
+#         experiment_fov_key.append(fov)
 
 success_rate_dict = {}
 makespan_dict = {}
@@ -92,15 +94,16 @@ for key in experiment_key:
 
 # pre-load
 for i in range(len(experiment_key)):
-    is_baseline = "Baseline" in experiment_key[i]
+    is_slack_off = "SlackOff" in experiment_key[i]
     key = experiment_key[i]
     fov = experiment_fov_key[i]
     slack_decay = experiment_slack_decay_key[i]
+    print("key:", key)
     for r_idx, num_r in enumerate(num_robot):
         print("r_idx: ", r_idx, "num_r: ", num_r)
         for exp_idx in range(num_exp):
-            if is_baseline:
-                state_json = result_path+date+"/baseline_"+instance_type+str(num_r)+"_fov"+str(fov)+"_decay"+str(slack_decay)+"_States_"+str(exp_idx)+".json"
+            if is_slack_off:
+                state_json = result_path+date+"/"+instance_type+str(num_r)+"_fov"+str(fov)+"_slack_off"+"_States_"+str(exp_idx)+".json"
             else:
                 state_json = result_path+date+"/"+instance_type+str(num_r)+"_fov"+str(fov)+"_decay"+str(slack_decay)+"_States_"+str(exp_idx)+".json"
             config_json = config_path+instance_type+str(num_r)+"_config.json"
@@ -108,15 +111,15 @@ for i in range(len(experiment_key)):
 print("pass pre-load, all data exist...")
 
 for i in range(len(experiment_key)):
-    is_baseline = "Baseline" in experiment_key[i]
+    is_slack_off = "SlackOff" in experiment_key[i]
     key = experiment_key[i]
     fov = experiment_fov_key[i]
     slack_decay = experiment_slack_decay_key[i]
     for r_idx, num_r in enumerate(num_robot):
         print("r_idx: ", r_idx, "num_r: ", num_r)
         for exp_idx in range(num_exp):
-            if is_baseline:
-                state_json = result_path+date+"/baseline_"+instance_type+str(num_r)+"_fov"+str(fov)+"_decay"+str(slack_decay)+"_States_"+str(exp_idx)+".json"
+            if is_slack_off:
+                state_json = result_path+date+"/"+instance_type+str(num_r)+"_fov"+str(fov)+"_slack_off"+"_States_"+str(exp_idx)+".json"
             else:
                 state_json = result_path+date+"/"+instance_type+str(num_r)+"_fov"+str(fov)+"_decay"+str(slack_decay)+"_States_"+str(exp_idx)+".json"
             config_json = config_path+instance_type+str(num_r)+"_config.json"
@@ -124,8 +127,8 @@ for i in range(len(experiment_key)):
             goals = np.array(load_states(config_json)["tasks"]["sf"])
             num_robots = len(states["robots"])
             traj = np.array([states["robots"][str(_)]["states"] for _ in range(num_robots)])  # [n_robot, ts, dim]
-            if not is_baseline:
-                traj = traj[:,::10,:]
+            # TODO [optional] downsampling traj
+            traj = traj[:,::10,:]
             if QP_SUCCESS_METRIC:
                 QP_success = np.array([states["robots"][str(_)]["QP_success"] for _ in range(num_robots)])  # [n_robot, loops]
 
@@ -133,8 +136,8 @@ for i in range(len(experiment_key)):
             FoV_beta = fov * np.pi/180
             FoV_range = load_states(config_json)["fov_cbf_params"]["Rs"]
             Ts = states["Ts"]
-            if not is_baseline:
-                Ts = Ts*10
+            # TODO [optional] downsampling Ts
+            Ts = Ts*10
 
             # Metric1: success rate
             goal_radius = 1.6
@@ -154,7 +157,8 @@ for i in range(len(experiment_key)):
 
             # Metric3: QP success rate
             avg_QP_success = avg_QP_success_rate(QP_success)
-            print(avg_QP_success)
+            mean_avg_QP_success = np.mean(avg_QP_success)
+            QP_success_rate_dict[key][r_idx].append(mean_avg_QP_success)
 
 
 # plots
@@ -195,6 +199,15 @@ percent_neighbor_in_fov_q3_arr_list = []
 percent_neighbor_in_fov_label_list = []
 percent_neighbor_in_fov_samples = []
 
+QP_success_rate_mean_arr_list = []
+QP_success_rate_negative_ci_arr_list = []
+QP_success_rate_positive_ci_arr_list = []
+QP_success_rate_median_arr_list = []
+QP_success_rate_q1_arr_list = []
+QP_success_rate_q3_arr_list = []
+QP_success_rate_label_list = []
+QP_success_rate_samples = []
+
 num_colors = 0
 for key in experiment_key:
     success_rate_ci_dict[key]["mean"], success_rate_ci_dict[key]["ci"] = CI_compute(np.array(success_rate_dict[key]))
@@ -210,7 +223,9 @@ for key in experiment_key:
     percent_neighbor_in_fov_ci_dict[key]["mean"], percent_neighbor_in_fov_ci_dict[key]["ci"] = CI_compute(np.array(percent_neighbor_in_fov_dict[key]))
     percent_neighbor_in_fov_percentile_dict[key]["median"], percent_neighbor_in_fov_percentile_dict[key]["q1"], percent_neighbor_in_fov_percentile_dict[key]["q3"] = percentile_compute(np.array(percent_neighbor_in_fov_dict[key]))
     percent_neighbor_in_fov_samples.append(np.array(percent_neighbor_in_fov_dict[key]))
-    # QP_success_rate_dict
+    QP_success_rate_ci_dict[key]["mean"], QP_success_rate_ci_dict[key]["ci"] = CI_compute(np.array(QP_success_rate_dict[key]))
+    QP_success_rate_percentile_dict[key]["median"], QP_success_rate_percentile_dict[key]["q1"], QP_success_rate_percentile_dict[key]["q3"] = percentile_compute(np.array(QP_success_rate_dict[key]))
+    QP_success_rate_samples.append(np.array(QP_success_rate_dict[key]))
 
     success_rate_mean_arr_list.append(success_rate_ci_dict[key]["mean"])
     success_rate_negative_ci_arr_list.append(success_rate_ci_dict[key]["ci"])
@@ -244,16 +259,25 @@ for key in experiment_key:
     percent_neighbor_in_fov_q3_arr_list.append(percent_neighbor_in_fov_percentile_dict[key]["q3"])
     percent_neighbor_in_fov_label_list.append(key)
 
+    QP_success_rate_mean_arr_list.append(QP_success_rate_ci_dict[key]["mean"])
+    QP_success_rate_negative_ci_arr_list.append(QP_success_rate_ci_dict[key]["ci"])
+    QP_success_rate_positive_ci_arr_list.append(QP_success_rate_ci_dict[key]["ci"])
+    QP_success_rate_median_arr_list.append(QP_success_rate_percentile_dict[key]["median"])
+    QP_success_rate_q1_arr_list.append(QP_success_rate_percentile_dict[key]["q1"])
+    QP_success_rate_q3_arr_list.append(QP_success_rate_percentile_dict[key]["q3"])
+    QP_success_rate_label_list.append(key)
+
     num_colors += 1
 
 colors = generate_rgb_colors(num_colors)
 assert len(colors) == len(success_rate_mean_arr_list)
-list_CI_plot(num_robot_arr, success_rate_mean_arr_list, success_rate_negative_ci_arr_list, success_rate_positive_ci_arr_list, success_rate_label_list, colors, xlabel="Number of Robots", ylabel="Success Rate", save_name="./multi_success_rate_ci.pdf")
-list_CI_plot(num_robot_arr, num_neighbor_in_fov_mean_arr_list, num_neighbor_in_fov_negative_ci_arr_list, num_neighbor_in_fov_positive_ci_arr_list, num_neighbor_in_fov_label_list, colors, xlabel="Number of Robots", ylabel="Number of Neighbors in FoV", save_name="./multi_nnif_ci.pdf")
-list_CI_plot(num_robot_arr, percent_neighbor_in_fov_mean_arr_list, percent_neighbor_in_fov_negative_ci_arr_list, percent_neighbor_in_fov_positive_ci_arr_list, percent_neighbor_in_fov_label_list, colors, xlabel="Number of Robots", ylabel="Percentage of\n Neighbors in FoV", save_name="./multi_pnif_ci.pdf")
-list_CI_plot(num_robot_arr, makespan_mean_arr_list, makespan_negative_ci_arr_list, makespan_positive_ci_arr_list, makespan_label_list, colors, xlabel="Number of Robots", ylabel="Makespan", save_name="./multi_makespan_ci.pdf")
+list_CI_plot(num_robot_arr, success_rate_mean_arr_list, success_rate_negative_ci_arr_list, success_rate_positive_ci_arr_list, success_rate_label_list, colors, xlabel="Number of Robots", ylabel="Success Rate", save_name="./multi_success_rate_ci_slack_mode.pdf")
+list_CI_plot(num_robot_arr, num_neighbor_in_fov_mean_arr_list, num_neighbor_in_fov_negative_ci_arr_list, num_neighbor_in_fov_positive_ci_arr_list, num_neighbor_in_fov_label_list, colors, xlabel="Number of Robots", ylabel="Number of Neighbors in FoV", save_name="./multi_nnif_ci_slack_mode.pdf")
+list_CI_plot(num_robot_arr, percent_neighbor_in_fov_mean_arr_list, percent_neighbor_in_fov_negative_ci_arr_list, percent_neighbor_in_fov_positive_ci_arr_list, percent_neighbor_in_fov_label_list, colors, xlabel="Number of Robots", ylabel="Percentage of\n Neighbors in FoV", save_name="./multi_pnif_ci_slack_mode.pdf")
+list_CI_plot(num_robot_arr, makespan_mean_arr_list, makespan_negative_ci_arr_list, makespan_positive_ci_arr_list, makespan_label_list, colors, xlabel="Number of Robots", ylabel="Makespan", save_name="./multi_makespan_ci_slack_mode.pdf")
+list_CI_plot(num_robot_arr, QP_success_rate_mean_arr_list, QP_success_rate_negative_ci_arr_list, QP_success_rate_positive_ci_arr_list, QP_success_rate_label_list, colors, xlabel="Number of Robots", ylabel="QP Success Rate", save_name="./multi_qp_success_rate_ci_slack_mode.pdf")
 
-histogram_list_CI_plot(num_robot_arr, success_samples, success_rate_mean_arr_list, success_rate_negative_ci_arr_list, success_rate_positive_ci_arr_list, success_rate_label_list, colors, xlabel="Number of Robots", ylabel="Success Rate", legend=True, save_name="./hist_success_rate_ci.pdf")
-histogram_list_CI_plot(num_robot_arr, makespan_samples, makespan_mean_arr_list, makespan_negative_ci_arr_list, makespan_positive_ci_arr_list, makespan_label_list, colors, xlabel="Number of Robots", ylabel="Makespan", legend=False, save_name="./hist_makespan_ci.pdf")
-histogram_list_CI_plot(num_robot_arr, success_samples, success_rate_median_arr_list, success_rate_q1_arr_list, success_rate_q3_arr_list, success_rate_label_list, colors, xlabel="Number of Robots", ylabel="Success Rate", legend=True, save_name="./hist_success_rate_percentile.pdf")
-histogram_list_CI_plot(num_robot_arr, makespan_samples, makespan_median_arr_list, makespan_q1_arr_list, makespan_q3_arr_list, makespan_label_list, colors, xlabel="Number of Robots", ylabel="Makespan", legend=False, save_name="./hist_makespan_percentile.pdf")
+histogram_list_CI_plot(num_robot_arr, success_samples, success_rate_mean_arr_list, success_rate_negative_ci_arr_list, success_rate_positive_ci_arr_list, success_rate_label_list, colors, xlabel="Number of Robots", ylabel="Success Rate", legend=True, save_name="./hist_success_rate_ci_slack_mode.pdf")
+histogram_list_CI_plot(num_robot_arr, makespan_samples, makespan_mean_arr_list, makespan_negative_ci_arr_list, makespan_positive_ci_arr_list, makespan_label_list, colors, xlabel="Number of Robots", ylabel="Makespan", legend=False, save_name="./hist_makespan_ci_slack_mode.pdf")
+histogram_list_CI_plot(num_robot_arr, success_samples, success_rate_median_arr_list, success_rate_q1_arr_list, success_rate_q3_arr_list, success_rate_label_list, colors, xlabel="Number of Robots", ylabel="Success Rate", legend=True, save_name="./hist_success_rate_percentile_slack_mode.pdf")
+histogram_list_CI_plot(num_robot_arr, makespan_samples, makespan_median_arr_list, makespan_q1_arr_list, makespan_q3_arr_list, makespan_label_list, colors, xlabel="Number of Robots", ylabel="Makespan", legend=False, save_name="./hist_makespan_percentile_slack_mode.pdf")

@@ -6,6 +6,7 @@ import colorsys
 
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = ['DejaVu Serif']
+QP_SUCCESS_METRIC = False
 
 def generate_rgb_colors(num_colors):
     output = []
@@ -15,14 +16,14 @@ def generate_rgb_colors(num_colors):
         output.append(colorsys.hsv_to_rgb(incremented_value, 0.5, 0.7))
     return np.asarray(output)
 
-instance_type = "circle"
-# instance_type = "formation"
+# instance_type = "circle"
+instance_type = "formation"
 config_path = "../instances/"+instance_type+"_instances/"
 result_path = "/media/lishuo/ssd/RSS2025_results/log"
-date = "01212025"
+date = "03212025"
 num_exp = 15
-min_r = 2
-max_r = 10
+min_r = 11
+max_r = 15
 min_fov=120
 max_fov=360
 fov_step=120
@@ -59,6 +60,7 @@ success_rate_dict = {}
 makespan_dict = {}
 num_neighbor_in_fov_dict = {}
 percent_neighbor_in_fov_dict = {}
+QP_success_rate_dict = {}
 
 success_rate_ci_dict={}
 success_rate_percentile_dict={}
@@ -68,11 +70,14 @@ num_neighbor_in_fov_ci_dict={}
 num_neighbor_in_fov_percentile_dict={}
 percent_neighbor_in_fov_ci_dict={}
 percent_neighbor_in_fov_percentile_dict={}
+QP_success_rate_ci_dict = {}
+QP_success_rate_percentile_dict = {}
 for key in experiment_key:
     success_rate_dict[key] = [[] for _ in num_robot]  # [entry,], averaged by M, M is the sample
     makespan_dict[key] = [[] for _ in num_robot]  # [entry,], averaged by M, M is the sample
     num_neighbor_in_fov_dict[key] = [[] for _ in num_robot]  # [entry, M]
     percent_neighbor_in_fov_dict[key] = [[] for _ in num_robot]  # [entry, M]
+    QP_success_rate_dict[key] = [[] for _ in num_robot]  # [entry, M]
 
     success_rate_ci_dict[key] = {}
     success_rate_percentile_dict[key]={}
@@ -82,6 +87,8 @@ for key in experiment_key:
     num_neighbor_in_fov_percentile_dict[key]={}
     percent_neighbor_in_fov_ci_dict[key] = {}
     percent_neighbor_in_fov_percentile_dict[key]={}
+    QP_success_rate_ci_dict[key] = {}
+    QP_success_rate_percentile_dict[key] = {}
 
 # pre-load
 for i in range(len(experiment_key)):
@@ -107,6 +114,7 @@ for i in range(len(experiment_key)):
     slack_decay = experiment_slack_decay_key[i]
     for r_idx, num_r in enumerate(num_robot):
         print("r_idx: ", r_idx, "num_r: ", num_r)
+        print("key: ", key)
         for exp_idx in range(num_exp):
             if is_baseline:
                 state_json = result_path+date+"/baseline_"+instance_type+str(num_r)+"_fov"+str(fov)+"_decay"+str(slack_decay)+"_States_"+str(exp_idx)+".json"
@@ -119,6 +127,9 @@ for i in range(len(experiment_key)):
             traj = np.array([states["robots"][str(_)]["states"] for _ in range(num_robots)])  # [n_robot, ts, dim]
             if not is_baseline:
                 traj = traj[:,::10,:]
+            if QP_SUCCESS_METRIC:
+                QP_success = np.array([states["robots"][str(_)]["QP_success"] for _ in range(num_robots)])  # [n_robot, loops]
+
             collision_shape = np.array(load_states(config_json)["robot_params"]["collision_shape"]["aligned_box"][:2]) - 0.01
             FoV_beta = fov * np.pi/180
             FoV_range = load_states(config_json)["fov_cbf_params"]["Rs"]
@@ -141,6 +152,11 @@ for i in range(len(experiment_key)):
             # print("mean_avg_num_neighbor_in_fov: ", mean_avg_num_neighbor_in_fov)
             num_neighbor_in_fov_dict[key][r_idx].append(mean_avg_num_neighbor_in_fov)
             percent_neighbor_in_fov_dict[key][r_idx].append(mean_avg_num_neighbor_in_fov / num_neighbors)
+
+            # # Metric3: QP success rate
+            # avg_QP_success = avg_QP_success_rate(QP_success)
+            # print(avg_QP_success)
+
 
 # plots
 num_robot_arr = np.array(num_robot)
@@ -195,6 +211,7 @@ for key in experiment_key:
     percent_neighbor_in_fov_ci_dict[key]["mean"], percent_neighbor_in_fov_ci_dict[key]["ci"] = CI_compute(np.array(percent_neighbor_in_fov_dict[key]))
     percent_neighbor_in_fov_percentile_dict[key]["median"], percent_neighbor_in_fov_percentile_dict[key]["q1"], percent_neighbor_in_fov_percentile_dict[key]["q3"] = percentile_compute(np.array(percent_neighbor_in_fov_dict[key]))
     percent_neighbor_in_fov_samples.append(np.array(percent_neighbor_in_fov_dict[key]))
+    # QP_success_rate_dict
 
     success_rate_mean_arr_list.append(success_rate_ci_dict[key]["mean"])
     success_rate_negative_ci_arr_list.append(success_rate_ci_dict[key]["ci"])
