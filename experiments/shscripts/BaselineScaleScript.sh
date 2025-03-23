@@ -1,10 +1,10 @@
 cd ../../lib/cbf/cmake-build-release
 cmake --build ./ --target cbf_examples_CBFControl_example
-date="01312025"
+date="03212025"
 instances="circle"
 #instances="formation"
-min_r=2
-max_r=10
+min_r=11
+max_r=15
 max_exp=15
 min_fov=120
 max_fov=360
