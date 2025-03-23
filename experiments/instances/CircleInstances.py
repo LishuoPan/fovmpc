@@ -82,8 +82,12 @@ if __name__ == '__main__':
     instance_type = args.instance_type
     if instance_type == "circle":
         w_pos_err = 10
+        v_min = [-3, -3, -2.6179938779914944]
+        v_max = [3, 3, 2.6179938779914944]
     elif instance_type == "formation":
         w_pos_err = 300
+        v_min = [-0.5, -0.5, -2.6179938779914944]
+        v_max = [0.5, 0.5, 2.6179938779914944]
 
     # mpc params
     mpc_params = {
@@ -98,8 +102,8 @@ if __name__ == '__main__':
         "physical_limits": {
             "p_min": [-10, -10],
             "p_max": [10, 10],
-            "v_min": [-0.5, -0.5, -2.6179938779914944],
-            "v_max": [0.5, 0.5, 2.6179938779914944],
+            "v_min": v_min,
+            "v_max": v_max,
             "a_min": [-10.0, -10.0, -3.141592653589793],
             "a_max": [10.0, 10.0, 3.141592653589793],
             "pos_std": 0.001,
