@@ -91,6 +91,9 @@ def avg_neighbor_in_fov(traj, FoV_beta, makespan):
         avg_in_fov.append(num_neighbor_in_fov / min(makespan, ts))
     return avg_in_fov
 
+def avg_QP_success_rate(QP_success):
+    """QP_success: [n_robot, loops]"""
+    return np.mean(QP_success, axis=1)
 
 if __name__ == '__main__':
     states_json = load_states("../instances/results/CBFXYYawStates.json")
