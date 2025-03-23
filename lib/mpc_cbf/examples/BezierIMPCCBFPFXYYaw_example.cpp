@@ -203,6 +203,8 @@ int main(int argc, char* argv[]) {
              cxxopts::value<int>()->default_value(std::to_string(2)))
             ("fov", "fov degree",
              cxxopts::value<int>()->default_value(std::to_string(120)))
+            ("slack_mode", "bool to turn on and off the slack mode",
+             cxxopts::value<int>()->default_value(std::to_string(1)))
             ("slack_decay", "slack variable cost decay rate",
              cxxopts::value<double>()->default_value(std::to_string(0.1)))
             ("write_filename", "write to json filename",
@@ -296,7 +298,7 @@ int main(int argc, char* argv[]) {
     // init cbf
     std::shared_ptr<FovCBF> fov_cbf = std::make_unique<FovCBF>(fov_beta, fov_Ds, fov_Rs, v_min, v_max);
     // init bezier mpc-cbf
-    uint64_t bezier_continuity_upto_degree = 3;
+    uint64_t bezier_continuity_upto_degree = 4;
     int num_neighbors = experiment_config_json["tasks"]["so"].size() - 1;
     std::cout << "neighbor size: " << num_neighbors << "\n";
     BezierMPCCBFParams bezier_mpc_cbf_params = {piecewise_bezier_params, mpc_params, fov_cbf_params};
@@ -305,7 +307,8 @@ int main(int argc, char* argv[]) {
     double slack_cost = 1000;
     double slack_decay_rate = option_parse["slack_decay"].as<double>();
     std::cout << "slack_decay_rate: " << slack_decay_rate << "\n";
-    bool slack_mode = true;
+    bool slack_mode = (bool)option_parse["slack_mode"].as<int>();
+    std::cout << "slack mode is on: " << slack_mode << "\n";
     IMPCParams impc_params = {cbf_horizon, impc_iter, slack_cost, slack_decay_rate, slack_mode};
     IMPCCBFParams impc_cbf_params = {bezier_mpc_cbf_params, impc_params};
     BezierIMPCCBF bezier_impc_cbf(impc_cbf_params, pred_model_ptr, fov_cbf, bezier_continuity_upto_degree, aligned_box_collision_shape_ptr, num_neighbors);
@@ -361,6 +364,7 @@ int main(int argc, char* argv[]) {
     assert(filters.size() == num_robots);
 
     // planning results
+    std::vector<bool> init_success(num_robots, false);
     std::vector<std::shared_ptr<SingleParameterPiecewiseCurve>> pred_traj_ptrs(num_robots);
     std::vector<double> traj_eval_ts(num_robots, 0);
     double pred_horizon = num_pieces * piece_max_parameter;
@@ -452,56 +456,67 @@ int main(int argc, char* argv[]) {
                                                     ref_positions);
             if (!success) {
                 std::cout << "QP failed at ts: " << sim_t;
-                if (!trajs.empty()) {
-                    std::cout << "; But initial planning is successful...";
-                    pred_traj_ptrs.at(robot_idx) = std::make_shared<SingleParameterPiecewiseCurve>(std::move(trajs.back()));
-                    traj_eval_ts.at(robot_idx) = 0;
-                }
+//                if (!trajs.empty()) {
+//                    std::cout << "; But initial planning is successful...";
+//                    pred_traj_ptrs.at(robot_idx) = std::make_shared<SingleParameterPiecewiseCurve>(std::move(trajs.back()));
+//                    traj_eval_ts.at(robot_idx) = 0;
+//                }
+                states["robots"][std::to_string(robot_idx)]["QP_success"].push_back(0);
                 std::cout << "\n";
             }
 
 //            /* continuous control
             if (success) {
+                init_success.at(robot_idx) = true;
 //                SingleParameterPiecewiseCurve optim_traj = trajs.back();
                 pred_traj_ptrs.at(robot_idx) = std::make_shared<SingleParameterPiecewiseCurve>(std::move(trajs.back()));
                 traj_eval_ts.at(robot_idx) = 0;
+                states["robots"][std::to_string(robot_idx)]["QP_success"].push_back(1);
             }
 
-            // log down the prediction
-            double t = 0;
-            while (t <= pred_horizon) {
-//                for (size_t traj_index = 0; traj_index < trajs.size(); ++traj_index) {
-                VectorDIM pred_pos;
-//                    if (success) {
-//                        pred_pos = trajs.at(traj_index).eval(t, 0);
-//                    } else {
-                double pred_t = traj_eval_ts.at(robot_idx) + t;
-                if (pred_t > pred_traj_ptrs.at(robot_idx)->max_parameter()) {
-                    pred_t = pred_traj_ptrs.at(robot_idx)->max_parameter();
-                }
-                pred_pos = pred_traj_ptrs.at(robot_idx)->eval(pred_t, 0);
-//                    }
-                states["robots"][std::to_string(robot_idx)]["pred_curve"][loop_idx][0].push_back({pred_pos(0), pred_pos(1), pred_pos(2)});
+//            // log down the prediction
+//            double t = 0;
+//            while (t <= pred_horizon) {
+////                for (size_t traj_index = 0; traj_index < trajs.size(); ++traj_index) {
+//                VectorDIM pred_pos;
+////                    if (success) {
+////                        pred_pos = trajs.at(traj_index).eval(t, 0);
+////                    } else {
+//                double pred_t = traj_eval_ts.at(robot_idx) + t;
+//                if (pred_t > pred_traj_ptrs.at(robot_idx)->max_parameter()) {
+//                    pred_t = pred_traj_ptrs.at(robot_idx)->max_parameter();
 //                }
-                t += 0.05;
-            }
+//                pred_pos = pred_traj_ptrs.at(robot_idx)->eval(pred_t, 0);
+////                    }
+//                states["robots"][std::to_string(robot_idx)]["pred_curve"][loop_idx][0].push_back({pred_pos(0), pred_pos(1), pred_pos(2)});
+////                }
+//                t += 0.05;
+//            }
 
             // log down the trajectory
             double eval_t = 0;
             for (int t_idx = 1; t_idx <= int(h / Ts); ++t_idx) {
-                eval_t = traj_eval_ts.at(robot_idx) + Ts*t_idx;
-                if (eval_t > pred_traj_ptrs.at(robot_idx)->max_parameter()) {
-                    eval_t = pred_traj_ptrs.at(robot_idx)->max_parameter();
-                }
+                if (init_success.at(robot_idx)) {
+                    eval_t = traj_eval_ts.at(robot_idx) + Ts*t_idx;
+                    if (eval_t > pred_traj_ptrs.at(robot_idx)->max_parameter()) {
+                        eval_t = pred_traj_ptrs.at(robot_idx)->max_parameter();
+                    }
 
-                Vector x_t_pos = pred_traj_ptrs.at(robot_idx)->eval(eval_t, 0);
-                x_t_pos(2) = convertYawInRange(x_t_pos(2));
-                Vector x_t_vel = pred_traj_ptrs.at(robot_idx)->eval(eval_t, 1);
-                Vector x_t(6);
-                x_t << x_t_pos, x_t_vel;
-                x_t = addRandomNoise(x_t, pos_std, vel_std);
-                states["robots"][std::to_string(robot_idx)]["states"].push_back({x_t[0], x_t[1], x_t[2], x_t[3], x_t[4], x_t[5]});
-                current_states.at(robot_idx) = x_t;
+                    Vector x_t_pos = pred_traj_ptrs.at(robot_idx)->eval(eval_t, 0);
+                    x_t_pos(2) = convertYawInRange(x_t_pos(2));
+                    Vector x_t_vel = pred_traj_ptrs.at(robot_idx)->eval(eval_t, 1);
+                    Vector x_t(6);
+                    x_t << x_t_pos, x_t_vel;
+                    x_t = addRandomNoise(x_t, pos_std, vel_std);
+                    states["robots"][std::to_string(robot_idx)]["states"].push_back({x_t[0], x_t[1], x_t[2], x_t[3], x_t[4], x_t[5]});
+                    current_states.at(robot_idx) = x_t;
+                } else {
+                    Vector x_t(6);
+                    x_t = current_states.at(robot_idx);
+                    x_t = addRandomNoise(x_t, pos_std, vel_std);
+                    states["robots"][std::to_string(robot_idx)]["states"].push_back({x_t[0], x_t[1], x_t[2], x_t[3], x_t[4], x_t[5]});
+                    current_states.at(robot_idx) = x_t;
+                }
             }
             traj_eval_ts.at(robot_idx) = eval_t;
 //             */

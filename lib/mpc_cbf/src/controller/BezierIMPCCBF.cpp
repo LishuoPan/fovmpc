@@ -197,15 +197,15 @@ namespace mpc_cbf {
             SolveStatus solve_status = cplex_solver.solve(problem);
             if (solve_status == SolveStatus::OPTIMAL) {
                 success = true;
-                // generate bezier
-                result_curves.push_back(qp_generator_.piecewise_mpc_qp_generator_ptr()->generateCurveFromSolution());
+//                // generate bezier
+//                result_curves.push_back(qp_generator_.piecewise_mpc_qp_generator_ptr()->generateCurveFromSolution());
             } else {
                 success = false;
-                break;
+//                break;
             }
 
-//            // generate bezier
-//            result_curves.push_back(qp_generator_.piecewise_mpc_qp_generator_ptr()->generateCurveFromSolution());
+            // generate bezier
+            result_curves.push_back(qp_generator_.piecewise_mpc_qp_generator_ptr()->generateCurveFromSolution());
         }
 
         return success;

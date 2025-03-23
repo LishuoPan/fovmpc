@@ -287,15 +287,15 @@ namespace cbf
         } else if (fov == M_PI) {
             b3 = xt_rel(0,0);
         } else {
-            if (py < 0 || math::isApproximatelyEqual(fov, 2*M_PI)) {
+            if (py >= 0 && !math::isApproximatelyEqual(fov, 2*M_PI)) {
+                b3 = GiNaC::tan((2*M_PI-fov) / 2) * xt_rel(0, 0) + xt_rel(1, 0);
+            } else {
                 GiNaC::matrix Ac = GiNaC::matrix(1, CONTROL_VARS);
                 for (int j = 0; j < CONTROL_VARS; j++) {
                     Ac(0, j) = 0;
                 }
                 GiNaC::ex Bc = std::numeric_limits<double>::max();
                 return std::make_pair(Ac, Bc);
-            } else {
-                b3 = GiNaC::tan((2*M_PI-fov) / 2) * xt_rel(0, 0) + xt_rel(1, 0);
             }
         }
         GiNaC::matrix grad_b3 = GiNaC::matrix(STATE_VARS, 1);
